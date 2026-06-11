@@ -1,18 +1,25 @@
 #!/usr/bin/env python3
 """
 Export a single contact's WeChat chat as HTML.
-Modify TARGET_NAME / TARGET_REMARK below to specify the contact.
+Edit the TARGET_* and USER_* variables below before running.
+
+Prerequisite: Run decrypt_all.py first.
 """
 import sqlite3, os, hashlib, datetime, html
 
+# === CONFIGURATION ============================================================
 DECRYPTED_DIR = os.path.expanduser("~/Desktop/Claude/wechat_decrypted")
 OUTPUT_DIR = os.path.expanduser("~/Desktop/Claude")
-USER_WXID = "wxid_mds82h5hdwm122"
-USER_NAME = "周彬逊"
 
-# ====== 修改这里：要导出的联系人 ======
-TARGET_REMARK = "杨思敏"   # 备注名（优先匹配）
-TARGET_NICK = ""           # 或按昵称匹配
+# Your own WeChat identity
+USER_WXID = "YOUR_WXID_HERE"     # Find in contact.db
+USER_NAME = "YOUR_NAME_HERE"     # Your display name
+
+# Target contact to export (fill in ONE of the following)
+TARGET_REMARK = ""               # By remark name (e.g. "杨思敏")
+TARGET_NICK = ""                 # By nickname (e.g. "奈青")
+TARGET_WXID = ""                 # By exact wxid
+# ==============================================================================
 TARGET_WXID = ""           # 或直接指定 wxid
 # ====================================
 

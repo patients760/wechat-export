@@ -2,13 +2,20 @@
 """
 Export ALL WeChat chats (private + group) as HTML.
 Reads from decrypted message_0/1/2.db, contact.db, and session.db.
+
+Prerequisite: Run decrypt_all.py first, then:
+  1. Find your wxid: check contact.db → your own row (remark/nick matches your name)
+  2. Fill in USER_WXID and USER_NAME below
+  3. Run this script
 """
 import sqlite3, os, hashlib, datetime, html, re
 
+# === CONFIGURATION ============================================================
 DECRYPTED_DIR = os.path.expanduser("~/Desktop/Claude/wechat_decrypted")
 OUTPUT_HTML = os.path.expanduser("~/Desktop/Claude/wechat_all_chats.html")
-USER_WXID = "wxid_mds82h5hdwm122"
-USER_NAME = "周彬逊"
+USER_WXID = "YOUR_WXID_HERE"   # Your own wxid (find in contact.db)
+USER_NAME = "YOUR_NAME_HERE"   # Your display name
+# ==============================================================================
 
 def load_contacts():
     """Return {wxid: {remark, nick_name, alias, display}}"""
