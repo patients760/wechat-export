@@ -1,0 +1,15 @@
+# Decrypted databases (contain personal data)
+wechat_decrypted/
+*.db
+
+# Exported HTML files
+*.html
+
+# Key files (contain encryption keys)
+wechat_keys.txt
+*.key
+
+# macOS
+.DS_Store
+__pycache__/
+*.pyc
