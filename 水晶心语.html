@@ -1,0 +1,1909 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>水晶心语</title>
+<style>
+/* ============================================================
+   RESET & BASE
+   ============================================================ */
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  min-height:100vh; height:100vh;
+  background:#050210;
+  font-family: 'PingFang SC','Microsoft YaHei',-apple-system,sans-serif;
+  overflow:hidden; cursor:default;
+  -webkit-font-smoothing:antialiased;
+}
+:root {
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ============================================================
+   THREE.JS CANVAS
+   ============================================================ */
+canvas#threeCanvas { display:block; position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:1; }
+canvas#bgCanvas  { position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:0; }
+canvas#fxCanvas  { position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:50; }
+
+/* ============================================================
+   STAGE 1 — OPENING OVERLAY
+   ============================================================ */
+#stageOpening {
+  position:fixed; inset:0; z-index:200; display:flex;
+  align-items:center; justify-content:center; flex-direction:column;
+  background:radial-gradient(ellipse at center, #0f0b24 0%, #080615 60%, #020006 100%);
+  transition: opacity 1.2s ease-out, visibility 1.2s ease-out;
+}
+#stageOpening.hidden { opacity:0; visibility:hidden; pointer-events:none; }
+#stageOpening .opening-title {
+  font-size:36px; font-weight:300; letter-spacing:12px;
+  background:linear-gradient(180deg, rgba(220,200,240,0.9) 0%, rgba(150,130,200,0.5) 60%, rgba(100,80,160,0.15) 100%);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+  opacity:0; transform:translateY(20px);
+  transition: all 1.5s ease-out;
+}
+#stageOpening .opening-title.show { opacity:1; transform:translateY(0); }
+#stageOpening .opening-sub {
+  font-size:13px; color:rgba(200,180,220,0.35); letter-spacing:6px;
+  margin-top:16px; opacity:0; transform:translateY(15px);
+  transition: all 1.5s ease-out 0.4s;
+}
+#stageOpening .opening-sub.show { opacity:1; transform:translateY(0); }
+#stageOpening .opening-loader { display:flex; gap:10px; margin-bottom:32px; }
+#stageOpening .opening-dot {
+  width:7px; height:7px; border-radius:50%;
+  background:rgba(180,160,220,0.6);
+  animation:dotPulse 1.2s ease-in-out infinite;
+}
+#stageOpening .opening-dot:nth-child(2) { animation-delay:0.2s; }
+#stageOpening .opening-dot:nth-child(3) { animation-delay:0.4s; }
+@keyframes dotPulse { 0%,100%{transform:scale(1);opacity:0.4} 50%{transform:scale(2.5);opacity:1} }
+
+/* ============================================================
+   STAGE 2 — COLOR SELECTION
+   ============================================================ */
+#stageSelect {
+  position:fixed; inset:0; z-index:180; display:none;
+  align-items:center; justify-content:center; flex-direction:column;
+  background:transparent; pointer-events:none;
+}
+#stageSelect.active { display:flex; }
+#stageSelect .select-question {
+  font-size:20px; font-weight:300; letter-spacing:4px;
+  color:rgba(220,210,240,0.8); margin-bottom:40px;
+  text-align:center; line-height:1.8;
+  opacity:0; transform:translateY(15px);
+  transition: all 0.9s var(--ease);
+}
+#stageSelect .select-question.show { opacity:1; transform:translateY(0); }
+#stageSelect .select-buttons {
+  display:flex; gap:30px; flex-wrap:wrap; justify-content:center;
+  opacity:0; transform:translateY(20px);
+  transition: all 0.9s var(--ease) 0.3s;
+}
+#stageSelect .select-buttons.show { opacity:1; transform:translateY(0); }
+#stageSelect .select-btn {
+  pointer-events:auto;
+  width:200px; padding:24px 20px; border-radius:24px;
+  border:1.5px solid rgba(255,255,255,0.1);
+  background:rgba(255,255,255,0.03);
+  backdrop-filter:blur(30px); -webkit-backdrop-filter:blur(30px);
+  cursor:pointer; text-align:center;
+  transition: all 0.4s var(--ease);
+  position:relative; overflow:hidden;
+}
+#stageSelect .select-btn:hover {
+  transform:translateY(-6px);
+  box-shadow:0 24px 60px rgba(0,0,0,0.4);
+}
+#stageSelect .select-btn::before {
+  content:''; position:absolute; inset:0;
+  opacity:0; transition:opacity 0.4s;
+}
+#stageSelect .select-btn:hover::before { opacity:1; }
+#stageSelect .btn-pink { border-color:rgba(255,150,180,0.2); }
+#stageSelect .btn-pink::before {
+  background:radial-gradient(ellipse at center, rgba(255,150,180,0.08) 0%, transparent 70%);
+}
+#stageSelect .btn-pink:hover { border-color:rgba(255,150,180,0.45); background:rgba(255,150,180,0.06); }
+#stageSelect .btn-blue { border-color:rgba(150,150,220,0.2); }
+#stageSelect .btn-blue::before {
+  background:radial-gradient(ellipse at center, rgba(150,150,220,0.08) 0%, transparent 70%);
+}
+#stageSelect .btn-blue:hover { border-color:rgba(150,150,220,0.45); background:rgba(150,150,220,0.06); }
+#stageSelect .btn-emoji { font-size:48px; margin-bottom:10px; filter:drop-shadow(0 8px 20px rgba(0,0,0,0.3)); }
+#stageSelect .btn-label { font-size:18px; font-weight:600; letter-spacing:3px; color:rgba(255,255,255,0.75); margin-bottom:6px; }
+#stageSelect .btn-desc { font-size:12px; color:rgba(255,255,255,0.35); letter-spacing:1px; }
+
+/* ============================================================
+   STAGE 3 — TRANSITION
+   ============================================================ */
+#stageTransition {
+  position:fixed; inset:0; z-index:170; pointer-events:none;
+  display:none; align-items:center; justify-content:center;
+}
+#stageTransition.active { display:flex; }
+#stageTransition .trans-ring {
+  width:0; height:0; border-radius:50%;
+  border:2px solid rgba(255,255,255,0.3);
+  animation:transExpand 0.9s ease-out forwards;
+}
+@keyframes transExpand {
+  0% { width:0; height:0; opacity:1; }
+  100% { width:200vmax; height:200vmax; opacity:0; }
+}
+
+/* ============================================================
+   STAGE 4 — LOTUS DISPLAY (Three.js handles main canvas)
+   ============================================================ */
+#lotusUI {
+  position:fixed; inset:0; z-index:20; pointer-events:none;
+  display:none;
+}
+#lotusUI.active { display:block; }
+.lotus-title-wrap {
+  position:fixed; bottom:36px; left:50%; transform:translateX(-50%);
+  text-align:center; pointer-events:none;
+}
+.lotus-title {
+  font-size:20px; font-weight:300; letter-spacing:8px;
+  background:linear-gradient(180deg, rgba(240,210,255,0.85) 0%, rgba(180,140,210,0.55) 50%, rgba(120,90,160,0.2) 100%);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+  opacity:0; transition:opacity 2s ease-out;
+}
+.lotus-title.show { opacity:1; }
+.lotus-sub {
+  font-size:10px; color:rgba(180,150,210,0.35); letter-spacing:5px; margin-top:5px;
+  opacity:0; transition:opacity 2s ease-out 0.5s;
+}
+.lotus-sub.show { opacity:1; }
+.lotus-hint {
+  position:fixed; top:24px; left:50%; transform:translateX(-50%);
+  font-size:11px; color:rgba(255,255,255,0.28); letter-spacing:3px; pointer-events:none;
+  opacity:0; transition:opacity 2s ease-out 1s;
+  animation:hintPulse 4s ease-in-out infinite;
+}
+.lotus-hint.show { opacity:1; }
+@keyframes hintPulse { 0%,100%{opacity:0.18} 50%{opacity:0.6} }
+@keyframes loveRise {
+  0% { opacity:1; transform:translateY(0) scale(1); }
+  100% { opacity:0; transform:translateY(-200px) scale(1.8); }
+}
+.click-counter {
+  position:fixed; bottom:100px; left:50%; transform:translateX(-50%);
+  pointer-events:none; font-size:13px; color:rgba(255,200,220,0.55); letter-spacing:2px;
+  transition:opacity 0.5s; opacity:0;
+}
+
+/* ============================================================
+   STAGE 5 — SPARK OVERLAY + TYPEWRITER
+   ============================================================ */
+#stageSpark {
+  position:fixed; inset:0; z-index:60; pointer-events:none;
+  display:none;
+}
+#stageSpark.active { display:block; }
+
+/* Float sparks */
+.float-spark {
+  position:fixed; pointer-events:none; z-index:62;
+  font-size:var(--fs-size);
+  animation:floatSpark var(--fs-dur) var(--fs-del) ease-in-out infinite;
+  opacity:0; filter:drop-shadow(0 0 var(--fs-glow) var(--fs-color));
+}
+@keyframes floatSpark {
+  0%   { transform:translateY(110vh) translateX(0) rotateZ(0deg) scale(0.2); opacity:0; }
+  8%   { opacity:0.5; }
+  35%  { transform:translateY(55vh) translateX(calc(var(--fs-drift)*0.5)) rotateZ(12deg) scale(0.8); }
+  65%  { transform:translateY(18vh) translateX(var(--fs-drift)) rotateZ(-6deg) scale(0.5); opacity:0.3; }
+  100% { transform:translateY(-10vh) translateX(calc(var(--fs-drift)*1.2)) rotateZ(0deg) scale(0.1); opacity:0; }
+}
+
+/* Light bubbles */
+.light-bubble {
+  position:fixed; pointer-events:none; z-index:61;
+  border-radius:50%;
+  background:radial-gradient(circle at 30% 30%, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.02) 50%, transparent 70%);
+  box-shadow:0 0 var(--lb-glow) rgba(200,200,255,0.06);
+  animation:bubbleFloat var(--lb-dur) var(--lb-del) ease-in-out infinite;
+  opacity:0;
+}
+@keyframes bubbleFloat {
+  0%   { transform:translateY(115vh) translateX(0) scale(0.2); opacity:0; }
+  15%  { opacity:0.35; }
+  50%  { transform:translateY(50vh) translateX(var(--lb-drift)) scale(1); opacity:0.3; }
+  85%  { transform:translateY(5vh) translateX(calc(var(--lb-drift)*0.5)) scale(0.6); opacity:0.1; }
+  100% { transform:translateY(-10vh) translateX(calc(var(--lb-drift)*0.3)) scale(0.1); opacity:0; }
+}
+
+/* Embers */
+.ember {
+  position:fixed; pointer-events:none; z-index:62;
+  animation:emberRise var(--ed) var(--edel) ease-out infinite;
+  font-size:var(--esz); opacity:0;
+}
+@keyframes emberRise {
+  0%   { transform:translateY(115vh) translateX(0) scale(0.3); opacity:0; }
+  6%   { opacity:0.55; transform:scale(1); }
+  30%  { opacity:0.4; }
+  70%  { opacity:0.15; }
+  100% { transform:translateY(-18vh) translateX(var(--edx)) scale(0.1); opacity:0; }
+}
+
+/* Text sparkle */
+.txt-sparkle {
+  position:fixed; pointer-events:none; z-index:70;
+  border-radius:50%;
+  animation:sparkleBurst var(--ts-dur) var(--ts-del) ease-out forwards;
+}
+@keyframes sparkleBurst {
+  0%   { opacity:1; transform:translate(0,0) scale(1); }
+  100% { opacity:0; transform:translate(var(--ts-dx),var(--ts-dy)) scale(0); }
+}
+
+/* Ripple */
+.ripple {
+  position:fixed; pointer-events:none; z-index:250;
+  border-radius:50%; border:1.5px solid rgba(200,200,240,0.25);
+  animation:rippleOut 0.85s ease-out forwards;
+}
+@keyframes rippleOut {
+  0% { width:0; height:0; opacity:1; }
+  100% { width:160px; height:160px; opacity:0; margin-left:-80px; margin-top:-80px; }
+}
+
+/* ============================================================
+   TYPEWRITER CARDS — LEFT & RIGHT
+   ============================================================ */
+.type-card-left, .type-card-right {
+  position:fixed; top:50%; transform:translateY(-50%); z-index:65;
+  max-width:28vw; width:auto; max-height:78vh; overflow-y:auto;
+  background:rgba(8,4,18,0.55); backdrop-filter:blur(30px); -webkit-backdrop-filter:blur(30px);
+  border:1px solid rgba(255,255,255,0.06); border-radius:24px;
+  padding:24px 24px; pointer-events:auto;
+  display:none;
+}
+.type-card-left  { left:25vw; opacity:0; transform:translate(calc(-50% - 24px), -50%); }
+.type-card-right { left:75vw; opacity:0; transform:translate(calc(-50% + 24px), -50%); }
+.type-card-left.show, .type-card-right.show {
+  opacity:1; transform:translate(-50%, -50%);
+  transition: all 1s var(--ease); display:block;
+}
+.type-card-left .type-title, .type-card-right .type-title {
+  font-size:22px; font-weight:600; letter-spacing:4px; margin-bottom:18px;
+  background:linear-gradient(135deg, rgba(200,180,220,0.9), rgba(160,140,200,0.6));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+}
+.type-area { min-height:100px; }
+.type-line {
+  display:block; font-size:18px; color:#c8c4d8; line-height:2.2; letter-spacing:1.2px;
+  opacity:0; transform:translateX(-12px) translateY(4px);
+  animation:typeIn 0.45s var(--ease) forwards;
+}
+@keyframes typeIn { to { opacity:1; transform:translateX(0) translateY(0); } }
+.type-line.glow {
+  font-size:26px; color:#c4a35a; font-weight:bold;
+  text-shadow:0 0 28px rgba(196,163,90,0.35);
+  animation:typeIn 0.45s var(--ease) forwards;
+}
+.type-line.fade { font-size:16px; color:#8c88a4; font-style:italic; }
+.type-line.divider {
+  text-align:center; color:rgba(255,255,255,0.18); font-size:22px; letter-spacing:6px;
+}
+.type-closing {
+  display:none; text-align:center; margin-top:20px;
+  animation:fadeUp 1.5s var(--ease) forwards;
+}
+.type-closing.show { display:block; }
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(20px); }
+  to { opacity:1; transform:translateY(0); }
+}
+.type-closing .closing-emoji { font-size:48px; margin-bottom:10px; }
+.type-closing .closing-text { font-size:17px; color:#8c88a4; line-height:2; letter-spacing:1px; }
+
+/* ============================================================
+   STAGE 6 — MESSAGE CARD
+   ============================================================ */
+#stageMessage {
+  position:fixed; inset:0; z-index:160; display:none;
+  align-items:center; justify-content:center;
+  pointer-events:none;
+}
+#stageMessage.active { display:flex; }
+.msg-card {
+  background:rgba(12,8,28,0.55); backdrop-filter:blur(45px); -webkit-backdrop-filter:blur(45px);
+  border:1px solid rgba(255,255,255,0.06); border-radius:32px;
+  padding:45px 40px; max-width:560px; width:90%; text-align:center;
+  opacity:0; transform:translateY(40px) scale(0.9);
+  transition:all 1.2s var(--ease);
+  box-shadow:0 40px 110px rgba(0,0,0,0.5),0 0 130px rgba(150,130,220,0.04);
+  max-height:80vh; overflow-y:auto; pointer-events:auto;
+}
+.msg-card.show { opacity:1; transform:translateY(0) scale(1); }
+.msg-card .msg-icon { font-size:56px; margin-bottom:16px; }
+.msg-card .msg-title {
+  font-size:28px; font-weight:300; letter-spacing:6px;
+  background:linear-gradient(135deg, rgba(200,180,220,0.9), rgba(160,140,200,0.6));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+  margin-bottom:24px;
+}
+.msg-card .msg-text {
+  font-size:16px; color:rgba(220,210,240,0.7); line-height:2.2; letter-spacing:1px;
+  margin-bottom:30px;
+}
+.msg-card .msg-close-btn {
+  pointer-events:auto; display:inline-block;
+  padding:10px 32px; border-radius:24px;
+  border:1px solid rgba(255,255,255,0.15);
+  background:rgba(255,255,255,0.04);
+  color:rgba(255,255,255,0.55); font-size:14px; letter-spacing:2px;
+  cursor:pointer; transition:all 0.35s; font-family:inherit;
+}
+.msg-card .msg-close-btn:hover {
+  background:rgba(255,255,255,0.1); border-color:rgba(255,255,255,0.3); color:#fff;
+}
+
+/* ============================================================
+   STAGE 7 — RESTART
+   ============================================================ */
+#stageRestart {
+  position:fixed; bottom:130px; left:50%; transform:translateX(-50%); z-index:160;
+  display:none; gap:20px;
+}
+#stageRestart.active { display:flex; }
+.restart-btn {
+  pointer-events:auto; padding:10px 28px; border-radius:24px;
+  border:1px solid rgba(255,255,255,0.1);
+  background:rgba(255,255,255,0.03);
+  backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+  color:rgba(255,255,255,0.45); font-size:13px; letter-spacing:2px;
+  cursor:pointer; transition:all 0.35s; font-family:inherit;
+  opacity:0; transform:translateY(15px);
+  transition: all 0.8s var(--ease);
+}
+.restart-btn.show { opacity:1; transform:translateY(0); }
+.restart-btn:hover { background:rgba(255,255,255,0.08); border-color:rgba(255,255,255,0.25); color:#fff; }
+
+/* ============================================================
+   GLOW ORB
+   ============================================================ */
+.glow-orb {
+  position:fixed; pointer-events:none; z-index:15;
+  width:180px; height:180px;
+  background:radial-gradient(circle, rgba(180,160,220,0.06) 0%, transparent 70%);
+  border-radius:50%; transform:translate(-50%,-50%);
+  transition:left 0.18s ease-out, top 0.18s ease-out;
+  display:none;
+}
+.glow-orb.active { display:block; }
+
+/* ============================================================
+   SCROLLBAR
+   ============================================================ */
+::-webkit-scrollbar { width:3px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.05); border-radius:10px; }
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width:640px) {
+  #stageSelect .select-buttons { flex-direction:column; gap:16px; }
+  #stageSelect .select-btn { width:180px; padding:20px 16px; }
+  #stageSelect .btn-emoji { font-size:36px; }
+  #stageSelect .btn-label { font-size:15px; }
+  .lotus-title { font-size:16px; letter-spacing:4px; }
+  .msg-card { padding:32px 22px; border-radius:24px; }
+  .msg-card .msg-title { font-size:22px; }
+  .type-card-left, .type-card-right { max-width:calc(48vw - 22px); padding:18px 14px; border-radius:18px; }
+  .type-card-left { left:4vw; } .type-card-right { left:52vw; }
+  .type-card-left .type-title, .type-card-right .type-title { font-size:18px; }
+  .type-line { font-size:15px; line-height:2; }
+  .type-line.glow { font-size:20px; }
+  .type-line.fade { font-size:14px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Three.js canvas -->
+<canvas id="threeCanvas"></canvas>
+
+<!-- Background canvas (starfield) -->
+<canvas id="bgCanvas"></canvas>
+
+<!-- Effects canvas -->
+<canvas id="fxCanvas"></canvas>
+
+<!-- Glow orb -->
+<div class="glow-orb" id="orb" style="left:-200px;top:-200px;"></div>
+
+<!-- ============================================================
+     STAGE 1 — OPENING
+     ============================================================ -->
+<div id="stageOpening">
+  <div class="opening-loader">
+    <div class="opening-dot"></div>
+    <div class="opening-dot"></div>
+    <div class="opening-dot"></div>
+  </div>
+  <div class="opening-title">水 晶 心 语</div>
+  <div class="opening-sub">✦ CRYSTAL WHISPERS ✦</div>
+</div>
+
+<!-- ============================================================
+     STAGE 2 — COLOR SELECTION
+     ============================================================ -->
+<div id="stageSelect">
+  <div class="select-question">此刻的你，<br>想看见怎样的色彩？</div>
+  <div class="select-buttons">
+    <div class="select-btn btn-pink" id="btnPink" onclick="selectColor('pink')">
+      <div class="btn-emoji">🌸</div>
+      <div class="btn-label">温柔暖调</div>
+      <div class="btn-desc">粉晶 · 暖光 · 柔美</div>
+    </div>
+    <div class="select-btn btn-blue" id="btnBlue" onclick="selectColor('blue')">
+      <div class="btn-emoji">💎</div>
+      <div class="btn-label">清透冷调</div>
+      <div class="btn-desc">蓝晶 · 冷光 · 空灵</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     STAGE 3 — TRANSITION
+     ============================================================ -->
+<div id="stageTransition"><div class="trans-ring"></div></div>
+
+<!-- ============================================================
+     STAGE 4 — LOTUS UI OVERLAY
+     ============================================================ -->
+<div id="lotusUI">
+  <div class="lotus-hint">点击花瓣绽放 · 点击花心全开 · 拖拽旋转 · 滚轮缩放 · 双击全屏</div>
+  <div class="lotus-title-wrap">
+    <div class="lotus-title" id="lotusTitle">水 晶 莲 花</div>
+    <div class="lotus-sub" id="lotusSub">✦ CRYSTAL LOTUS ✦</div>
+  </div>
+  <div class="click-counter" id="clickCounter"></div>
+</div>
+
+<!-- ============================================================
+     STAGE 5 — SPARK OVERLAY + TYPEWRITER
+     ============================================================ -->
+<div id="stageSpark">
+  <!-- Typewriter card — left (first half) -->
+  <div class="type-card-left" id="typeCardLeft">
+    <div class="type-title">最后一条火花</div>
+    <div class="type-area" id="typeAreaLeft"></div>
+  </div>
+  <!-- Typewriter card — right (second half) -->
+  <div class="type-card-right" id="typeCardRight">
+    <div class="type-area" id="typeAreaRight"></div>
+    <div class="type-closing" id="typeClosing">
+      <div class="closing-emoji">🥀</div>
+      <div class="closing-text">就此别过。<br>愿我们，各自安好。</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     STAGE 6 — MESSAGE
+     ============================================================ -->
+<div id="stageMessage">
+  <div class="msg-card" id="msgCard">
+    <div class="msg-icon" id="msgIcon">✨</div>
+    <div class="msg-title" id="msgTitle">心之所向</div>
+    <div class="msg-text" id="msgText">
+      愿每一次绽放，<br>都让你看见自己的光芒。
+    </div>
+    <div class="msg-close-btn" onclick="closeMessage()">继续欣赏</div>
+  </div>
+</div>
+
+<!-- ============================================================
+     STAGE 7 — RESTART
+     ============================================================ -->
+<div id="stageRestart">
+  <div class="restart-btn" id="restartReselect" onclick="restartFlow()">🔄 重新选择色彩</div>
+  <div class="restart-btn" id="restartReview" onclick="restartReview()">👁 再看一遍</div>
+</div>
+
+<!-- ============================================================
+     THREE.JS IMPORTS
+     ============================================================ -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+// ===================================================================
+//  COLOR PALETTE SYSTEM
+// ===================================================================
+const PALETTES = {
+  pink: {
+    name: '温柔暖调', emoji: '🌸',
+    sceneBg: '#100510', fogColor: '#100510',
+    ambientColor: '#1a0e14', ambientIntensity: 1.2,
+    keyColor: '#fff5f0', keyIntensity: 8,
+    fillColor: '#e8d0f0', fillIntensity: 6,
+    spotColor: '#ffd0e8', spotIntensity: 32,
+    bottomColor: '#6030a0', bottomIntensity: 5,
+    centerColor: '#ffb0c8', centerIntensity: 0.8,
+    texBud: ['#7a1020', '#c04050'],
+    texInner: ['#8b1530', '#d05060'],
+    texMid: ['#a02040', '#e87080'],
+    texOuter: ['#b03050', '#f090a0'],
+    texEdge: ['#c04060', '#f8b0c0'],
+    texEdgeTip: '#ffe8ec',
+    sheenColor: '#ffd0e0',
+    filamentColor: '#e8d080',
+    antherColor: '#f0c040', antherEmissive: '#502800',
+    ringColor: '#e8c4a0',
+    glowC1: '#702090', glowC2: '#301050',
+    pColors: ['#ffe0f0','#e0c0ff','#c0d0ff','#ffe8d0','#f8d0ff','#ffd0e0'],
+    sparkBurst: ['#ffe8f0','#ffd0f0','#ffc0e0'],
+    counterColor: 'rgba(255,200,220,0.55)',
+    title: '水 晶 莲 花', sub: '✦ CRYSTAL LOTUS ✦',
+    floatSparks: ['🌸','✨','💖','💫','💕','🌟'],
+    sparkColors: ['#ffb0c0','#ffc0d0','#ffd0e0','#f8b0d0','#ffa0c0'],
+    embers: ['🌸','💮','🏵️','🌷','💗'],
+    txtSparkleColors: ['#c4a35a','#ffb0c0','#f8b0d0','#ffe8f0','#ffd0e0'],
+  },
+  blue: {
+    name: '清透冷调', emoji: '💎',
+    sceneBg: '#050210', fogColor: '#050210',
+    ambientColor: '#0e0e1a', ambientIntensity: 1.2,
+    keyColor: '#f0f0ff', keyIntensity: 8,
+    fillColor: '#e8d0f0', fillIntensity: 6,
+    spotColor: '#d0d0ff', spotIntensity: 32,
+    bottomColor: '#6030a0', bottomIntensity: 5,
+    centerColor: '#b0c0ff', centerIntensity: 0.8,
+    texBud: ['#10105a', '#4040a0'],
+    texInner: ['#15156b', '#5050b0'],
+    texMid: ['#202080', '#7070c0'],
+    texOuter: ['#303090', '#9090d0'],
+    texEdge: ['#4040a0', '#b0b0e0'],
+    texEdgeTip: '#e8e8ff',
+    sheenColor: '#d0d0ff',
+    filamentColor: '#c0c0e8',
+    antherColor: '#d0d0f0', antherEmissive: '#101040',
+    ringColor: '#c0c0d0',
+    glowC1: '#4040a0', glowC2: '#202060',
+    pColors: ['#e0e0ff','#e0c0ff','#c0d0ff','#d0d0ff','#c0c0ff','#d0d0ff'],
+    sparkBurst: ['#e8e8ff','#d0d0ff','#c0c0ff'],
+    counterColor: 'rgba(200,200,255,0.55)',
+    title: '水 晶 莲 花', sub: '✦ CRYSTAL LOTUS ✦',
+    floatSparks: ['💎','✨','💫','🌙','⭐','❄️'],
+    sparkColors: ['#b0b0ff','#c0c0ff','#d0d0ff','#a0b0ff','#c0d0ff'],
+    embers: ['💎','✨','❄️','🌙','🔮'],
+    txtSparkleColors: ['#c4a35a','#b0b0ff','#c0c0ff','#d0d0ff','#e0e0ff'],
+  }
+};
+
+let PAL = PALETTES.pink;
+
+// ===================================================================
+//  STAGE MANAGER
+// ===================================================================
+let currentStage = 1;
+const dom = {};
+
+function cacheDom() {
+  dom.opening = document.getElementById('stageOpening');
+  dom.openingTitle = dom.opening.querySelector('.opening-title');
+  dom.openingSub = dom.opening.querySelector('.opening-sub');
+  dom.select = document.getElementById('stageSelect');
+  dom.selectQ = dom.select.querySelector('.select-question');
+  dom.selectBtns = dom.select.querySelector('.select-buttons');
+  dom.transition = document.getElementById('stageTransition');
+  dom.lotusUI = document.getElementById('lotusUI');
+  dom.lotusTitle = document.getElementById('lotusTitle');
+  dom.lotusSub = document.getElementById('lotusSub');
+  dom.lotusHint = dom.lotusUI.querySelector('.lotus-hint');
+  dom.clickCounter = document.getElementById('clickCounter');
+  dom.spark = document.getElementById('stageSpark');
+  dom.typeCardLeft = document.getElementById('typeCardLeft');
+  dom.typeAreaLeft = document.getElementById('typeAreaLeft');
+  dom.typeCardRight = document.getElementById('typeCardRight');
+  dom.typeAreaRight = document.getElementById('typeAreaRight');
+  dom.typeClosing = document.getElementById('typeClosing');
+  dom.message = document.getElementById('stageMessage');
+  dom.msgCard = document.getElementById('msgCard');
+  dom.restart = document.getElementById('stageRestart');
+  dom.restartReselect = document.getElementById('restartReselect');
+  dom.restartReview = document.getElementById('restartReview');
+  dom.orb = document.getElementById('orb');
+}
+cacheDom();
+
+// ===================================================================
+//  THE LETTER TEXT
+// ===================================================================
+const msgs = [
+  {t:'今天，我不续了。', c:'glow'},
+  '',
+  {t:'其实我一直都知道，', c:'fade'},
+  {t:'这串连续跳动的数字，', c:'fade'},
+  {t:'从来都不是双向的默契。', c:'fade'},
+  {t:'是我一个人的执念，', c:'fade'},
+  {t:'是我舍不得松手的最后一根线。', c:'fade'},
+  '',
+  {t:'对不起，这段时间打扰你了。', c:'fade'},
+  {t:'我太着急想靠近你，', c:'fade'},
+  {t:'太想把我眼里所有有趣的事都分享给你，', c:'fade'},
+  {t:'却忘了问你愿不愿意。', c:'fade'},
+  {t:'我用了很多笨拙又固执的方式喜欢你，', c:'fade'},
+  {t:'也给你造成了很多不必要的困扰，', c:'fade'},
+  {t:'真的对不起。', c:'fade'},
+  '',
+  {t:'现在我想通了。', c:'fade'},
+  {t:'喜欢是两个人的事，', c:'fade'},
+  {t:'一个人的努力永远填不满两个人的距离。', c:'fade'},
+  {t:'你没有错，你只是不喜欢我而已。', c:'fade'},
+  '',
+  {t:'以后我不会再每天准时找你，', c:'fade'},
+  {t:'不会再追问你的行踪，', c:'fade'},
+  {t:'也不会再用这种幼稚的方式，', c:'fade'},
+  {t:'来留住一段本就不属于我的关系。', c:'fade'},
+  '',
+  {t:'祝你平安，祝你快乐，', c:'fade'},
+  {t:'祝你永远有明确拒绝不喜欢的人的底气。', c:'fade'},
+  {t:'更祝你，早日遇到那个你愿意主动找他聊天、', c:'fade'},
+  {t:'愿意为他熬夜、愿意奋不顾身去奔赴的人。', c:'fade'},
+  '',
+  {t:'— —', c:'divider'},
+  '',
+  {t:'最后想对你说的话', c:'glow'},
+  '',
+  {t:'我知道你总是心软，', c:'fade'},
+  {t:'总怕直接说出自己的想法会伤害到别人。', c:'fade'},
+  {t:'所以你习惯用沉默、用拖延、', c:'fade'},
+  {t:'用"我懒""我有事"来委婉地拒绝，', c:'fade'},
+  {t:'你以为这是体面，是善良。', c:'fade'},
+  '',
+  {t:'但我想告诉你：', c:'fade'},
+  {t:'勇敢地说"不"，从来都不是一件残忍的事。', c:'fade'},
+  '',
+  {t:'不喜欢不是错，', c:'fade'},
+  {t:'不想深入交往也不是错。', c:'fade'},
+  {t:'比起拖着别人在希望和失望里反复煎熬，', c:'fade'},
+  {t:'一句干脆的"对不起，我对你没有那种感觉"，', c:'fade'},
+  {t:'才是对别人最大的尊重，', c:'fade'},
+  {t:'也是对自己最大的解脱。', c:'fade'},
+  '',
+  {t:'你不用为任何人的情绪负责，', c:'fade'},
+  {t:'不用勉强自己去回应不想要的热情，', c:'fade'},
+  {t:'不用为了照顾别人的感受而委屈自己。', c:'fade'},
+  {t:'你值得被人坚定地选择，', c:'fade'},
+  {t:'也值得坚定地拒绝所有你不想要的关系。', c:'fade'},
+  '',
+  {t:'以后再遇到不喜欢的人、不想做的事，', c:'fade'},
+  {t:'就大胆一点，直接一点吧。', c:'fade'},
+  {t:'你那么好，', c:'fade'},
+  {t:'值得所有清晰、明确、不拖泥带水的关系。', c:'fade'},
+];
+
+// Split into left (first half) and right (second half) at the divider
+const splitIdx = msgs.findIndex(m => typeof m === 'object' && m.c === 'divider');
+const msgsLeft  = msgs.slice(0, splitIdx + 1);   // up to and including "— —"
+const msgsRight = msgs.slice(splitIdx + 1);       // after divider
+
+function typeLine(targetArea, msgsArr, idx, onDone) {
+  if (idx >= msgsArr.length) {
+    if (onDone) setTimeout(onDone, 600);
+    return;
+  }
+  const raw = msgsArr[idx];
+  const txt = typeof raw === 'string' ? raw : raw.t;
+  const cls = typeof raw === 'string' ? '' : (raw.c || '');
+
+  const span = document.createElement('span');
+  span.className = 'type-line' + (cls ? ' ' + cls : '');
+  span.textContent = txt;
+  targetArea.appendChild(span);
+  const card = targetArea.parentElement;
+  card.scrollTo({ top: card.scrollHeight, behavior: 'smooth' });
+
+  const rect = span.getBoundingClientRect();
+  const ex = rect.right - 5, ey = rect.top + rect.height / 2;
+  const colors = PAL.txtSparkleColors;
+  const col = colors[Math.floor(Math.random() * colors.length)];
+  if (cls !== 'divider') textSparkle(ex, ey, txt.length * 3 + 6, col);
+
+  const delay = txt === '' ? 400 : txt.length * 70 + 250;
+  if (cls === 'divider') {
+    setTimeout(() => typeLine(targetArea, msgsArr, idx + 1, onDone), 2500);
+  } else {
+    setTimeout(() => typeLine(targetArea, msgsArr, idx + 1, onDone), delay);
+  }
+}
+
+// ===================================================================
+//  STAGE 1 → 2: Opening fades, show selection
+// ===================================================================
+function startFlow() {
+  setTimeout(() => {
+    dom.openingTitle.classList.add('show');
+    dom.openingSub.classList.add('show');
+  }, 400);
+
+  setTimeout(() => {
+    dom.opening.classList.add('hidden');
+    dom.select.classList.add('active');
+    setTimeout(() => {
+      dom.selectQ.classList.add('show');
+      dom.selectBtns.classList.add('show');
+    }, 300);
+    currentStage = 2;
+  }, 2800);
+}
+
+// ===================================================================
+//  STAGE 2 → 3 → 4: User picks color → transition → show lotus
+// ===================================================================
+window.selectColor = function(which) {
+  PAL = PALETTES[which];
+  dom.selectQ.classList.remove('show');
+  dom.selectBtns.classList.remove('show');
+
+  setTimeout(() => {
+    dom.select.classList.remove('active');
+    dom.transition.classList.add('active');
+    currentStage = 3;
+
+    setTimeout(() => {
+      dom.transition.classList.remove('active');
+      buildLotusScene();
+      dom.lotusUI.classList.add('active');
+      dom.orb.classList.add('active');
+      currentStage = 4;
+
+      setTimeout(() => {
+        dom.lotusTitle.classList.add('show');
+        dom.lotusSub.classList.add('show');
+        dom.lotusHint.classList.add('show');
+        dom.lotusTitle.textContent = PAL.title;
+        dom.lotusSub.textContent = PAL.sub;
+        dom.clickCounter.style.color = PAL.counterColor;
+      }, 400);
+
+      setTimeout(() => triggerSparkStage(), 6000);
+    }, 600);
+  }, 400);
+};
+
+// ===================================================================
+//  STAGE 5: Spark effects + typewriter
+// ===================================================================
+function triggerSparkStage() {
+  dom.spark.classList.add('active');
+  currentStage = 5;
+  spawnFloatSparks();
+  spawnLightBubbles();
+  spawnEmbers();
+
+  // Show left typewriter card first
+  setTimeout(() => {
+    dom.typeCardLeft.classList.add('show');
+    typeLine(dom.typeAreaLeft, msgsLeft, 0, () => {
+      // Left done — show right card
+      setTimeout(() => {
+        dom.typeCardRight.classList.add('show');
+        typeLine(dom.typeAreaRight, msgsRight, 0, () => {
+          // Right done — show closing and scroll into view
+          setTimeout(() => {
+            dom.typeClosing.classList.add('show');
+            requestAnimationFrame(() => {
+              dom.typeCardRight.scrollTo({ top: dom.typeCardRight.scrollHeight, behavior: 'smooth' });
+            });
+          }, 500);
+        });
+      }, 800);
+    });
+  }, 1500);
+
+  setTimeout(() => triggerRestartStage(), 5000);
+}
+
+function spawnFloatSparks() {
+  for (let i = 0; i < 8; i++) {
+    const el = document.createElement('div');
+    el.className = 'float-spark';
+    const idx = Math.floor(Math.random() * PAL.floatSparks.length);
+    el.textContent = PAL.floatSparks[idx];
+    const size = Math.random() * 20 + 14;
+    el.style.cssText = `
+      --fs-size:${size}px; --fs-dur:${Math.random()*10+12}s;
+      --fs-del:${-(Math.random()*12)}s; --fs-drift:${(Math.random()-0.5)*110}px;
+      --fs-color:${PAL.sparkColors[idx]}; --fs-glow:${Math.random()*6+4}px;
+      left:${Math.random()*88+6}%;
+    `;
+    dom.spark.appendChild(el);
+  }
+}
+
+function spawnLightBubbles() {
+  for (let i = 0; i < 10; i++) {
+    const b = document.createElement('div');
+    b.className = 'light-bubble';
+    const size = Math.random() * 40 + 14;
+    b.style.cssText = `
+      width:${size}px; height:${size}px;
+      left:${Math.random()*92}%;
+      --lb-dur:${Math.random()*10+14}s;
+      --lb-del:${-(Math.random()*14)}s;
+      --lb-drift:${(Math.random()-0.5)*60}px;
+      --lb-glow:${Math.random()*10+3}px;
+    `;
+    dom.spark.appendChild(b);
+  }
+}
+
+function spawnEmbers() {
+  for (let i = 0; i < 6; i++) {
+    const el = document.createElement('div');
+    el.className = 'ember';
+    el.textContent = PAL.embers[Math.floor(Math.random()*PAL.embers.length)];
+    el.style.cssText = `
+      left:${Math.random()*90+5}%;
+      --ed:${Math.random()*8+12}s;
+      --edel:${-(Math.random()*10)}s;
+      --esz:${Math.random()*16+12}px;
+      --edx:${(Math.random()-0.5)*100}px;
+    `;
+    dom.spark.appendChild(el);
+  }
+}
+
+// ===================================================================
+//  STAGE 6: Message
+// ===================================================================
+window.showMessage = function(icon, title, text) {
+  document.getElementById('msgIcon').textContent = icon || '✨';
+  document.getElementById('msgTitle').textContent = title || '';
+  document.getElementById('msgText').innerHTML = text || '';
+  dom.message.classList.add('active');
+  setTimeout(() => dom.msgCard.classList.add('show'), 100);
+  currentStage = 6;
+};
+
+window.closeMessage = function() {
+  dom.msgCard.classList.remove('show');
+  setTimeout(() => dom.message.classList.remove('active'), 800);
+  currentStage = 5;
+};
+
+// ===================================================================
+//  STAGE 7: Restart
+// ===================================================================
+function triggerRestartStage() {
+  dom.restart.classList.add('active');
+  setTimeout(() => {
+    dom.restartReselect.classList.add('show');
+    dom.restartReview.classList.add('show');
+  }, 200);
+  currentStage = 7;
+}
+
+window.restartFlow = function() {
+  dom.restartReselect.classList.remove('show');
+  dom.restartReview.classList.remove('show');
+  dom.restart.classList.remove('active');
+  dom.lotusUI.classList.remove('active');
+  dom.lotusTitle.classList.remove('show');
+  dom.lotusSub.classList.remove('show');
+  dom.lotusHint.classList.remove('show');
+  dom.spark.classList.remove('active');
+  dom.spark.innerHTML = '';
+  dom.typeCardLeft.classList.remove('show');
+  dom.typeAreaLeft.innerHTML = '';
+  dom.typeCardRight.classList.remove('show');
+  dom.typeAreaRight.innerHTML = '';
+  dom.typeClosing.classList.remove('show');
+  dom.orb.classList.remove('active');
+  dom.clickCounter.style.opacity = '0';
+  if (dom.msgCard) dom.msgCard.classList.remove('show');
+  dom.message.classList.remove('active');
+  dom.transition.classList.remove('active');
+
+  disposeLotusScene();
+
+  dom.select.classList.add('active');
+  setTimeout(() => {
+    dom.selectQ.classList.add('show');
+    dom.selectBtns.classList.add('show');
+  }, 300);
+  currentStage = 2;
+};
+
+window.restartReview = function() {
+  dom.restartReselect.classList.remove('show');
+  dom.restartReview.classList.remove('show');
+  dom.restart.classList.remove('active');
+  dom.lotusUI.classList.add('active');
+  dom.lotusTitle.classList.add('show');
+  dom.lotusSub.classList.add('show');
+  dom.lotusHint.classList.add('show');
+  dom.orb.classList.add('active');
+  dom.clickCounter.style.opacity = '0';
+  currentStage = 4;
+  resetLotusView();
+  setTimeout(() => triggerSparkStage(), 8000);
+};
+
+// ===================================================================
+//  RIPPLE (click feedback)
+// ===================================================================
+function spawnRipple(x, y) {
+  const r = document.createElement('div');
+  r.className = 'ripple';
+  r.style.left = x + 'px'; r.style.top = y + 'px';
+  document.body.appendChild(r);
+  setTimeout(() => r.remove(), 900);
+}
+
+// ===================================================================
+//  TEXT SPARKLE
+// ===================================================================
+function textSparkle(x, y, count, color) {
+  for (let i = 0; i < count; i++) {
+    const s = document.createElement('div');
+    s.className = 'txt-sparkle';
+    const angle = Math.random() * Math.PI * 2;
+    const dist = Math.random() * 30 + 10;
+    const dx = Math.cos(angle) * dist, dy = Math.sin(angle) * dist - Math.random() * 18;
+    const dur = Math.random() * 0.4 + 0.3;
+    s.style.cssText = `
+      left:${x}px; top:${y}px;
+      width:${Math.random()*3+1.2}px; height:${Math.random()*3+1.2}px;
+      background:${color}; box-shadow:0 0 ${Math.random()*4+2}px ${color};
+      --ts-dx:${dx}px; --ts-dy:${dy}px;
+      --ts-dur:${dur}s; --ts-del:${Math.random()*0.06}s;
+    `;
+    document.body.appendChild(s);
+    setTimeout(() => s.remove(), (dur + 0.1) * 1000);
+  }
+}
+
+// ===================================================================
+//  THREE.JS SCENE — Build & Dispose
+// ===================================================================
+let scene, camera, renderer, composer, controls;
+let lotus, allPetals, stamenGroup, centerTarget;
+let sparkles = [], fallingPetals = [];
+let bgParticles = [];
+let totalClicks = 0, fullBloomTriggered = false;
+let raycaster, mouse;
+let targetMouseX = 0, targetMouseY = 0, smoothMouseX = 0, smoothMouseY = 0;
+let threeClock, glowMat;
+let animFrameId;
+let fParts = [];
+
+function buildLotusScene() {
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(PAL.sceneBg);
+  scene.fog = new THREE.FogExp2(PAL.fogColor, 0.00015);
+
+  camera = new THREE.PerspectiveCamera(42, innerWidth / innerHeight, 0.1, 100);
+  camera.position.set(0, 0.8, 7.5);
+
+  const canvas = document.getElementById('threeCanvas');
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'high-performance' });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.setSize(innerWidth, innerHeight, false);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 0.6;
+
+  composer = new EffectComposer(renderer);
+  composer.addPass(new RenderPass(scene, camera));
+  const bloomPass = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.6, 0.5, 0.5);
+  bloomPass.threshold = 0.82; bloomPass.strength = 0.12; bloomPass.radius = 0.25;
+  composer.addPass(bloomPass);
+
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true; controls.dampingFactor = 0.08;
+  controls.autoRotate = true; controls.autoRotateSpeed = 0.35;
+  controls.minDistance = 3.5; controls.maxDistance = 14;
+  controls.maxPolarAngle = Math.PI * 0.72;
+  controls.target.set(0, 0.05, 0); controls.update();
+
+  scene.add(new THREE.AmbientLight(PAL.ambientColor, PAL.ambientIntensity));
+
+  const keyLight = new THREE.DirectionalLight(PAL.keyColor, PAL.keyIntensity);
+  keyLight.position.set(6, 5, 5); keyLight.castShadow = true;
+  keyLight.shadow.mapSize.width = 512; keyLight.shadow.mapSize.height = 512;
+  keyLight.shadow.camera.near = 0.5; keyLight.shadow.camera.far = 30;
+  keyLight.shadow.camera.left = -6; keyLight.shadow.camera.right = 6;
+  keyLight.shadow.camera.top = 6; keyLight.shadow.camera.bottom = -6;
+  keyLight.shadow.bias = -0.0001; keyLight.shadow.normalBias = 0.02;
+  scene.add(keyLight);
+
+  const fillLight = new THREE.DirectionalLight(PAL.fillColor, PAL.fillIntensity);
+  fillLight.position.set(-4, 2, 3);
+  scene.add(fillLight);
+
+  const spotLight = new THREE.SpotLight(PAL.spotColor, PAL.spotIntensity, 14, Math.PI / 6, 0.3, 0.5);
+  spotLight.position.set(-2, 3.5, -5); spotLight.castShadow = true;
+  spotLight.shadow.mapSize.width = 512; spotLight.shadow.mapSize.height = 512;
+  spotLight.shadow.bias = -0.0001;
+  scene.add(spotLight);
+
+  const bottomLight = new THREE.PointLight(PAL.bottomColor, PAL.bottomIntensity, 7);
+  bottomLight.position.set(0, -3.5, 1);
+  scene.add(bottomLight);
+
+  const centerLight = new THREE.PointLight(PAL.centerColor, PAL.centerIntensity, 1.0);
+  centerLight.position.set(0, -0.05, 0);
+  scene.add(centerLight);
+
+  function makeGradientTex(inner, outer) {
+    const w = 128, h = 256;
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    const ctx = c.getContext('2d');
+    const grad = ctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, inner); grad.addColorStop(0.3, inner);
+    grad.addColorStop(0.65, outer); grad.addColorStop(0.9, outer);
+    grad.addColorStop(1, PAL.texEdgeTip);
+    ctx.fillStyle = grad; ctx.fillRect(0, 0, w, h);
+    const img = ctx.getImageData(0, 0, w, h);
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const i = (y * w + x) * 4;
+        const d = 1 - Math.abs(x - w / 2) / (w / 2) * 0.15;
+        img.data[i] = Math.round(img.data[i] * d);
+        img.data[i + 1] = Math.round(img.data[i + 1] * d);
+        img.data[i + 2] = Math.round(img.data[i + 2] * d);
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.minFilter = THREE.LinearMipmapLinearFilter;
+    tex.magFilter = THREE.LinearFilter;
+    tex.generateMipmaps = true;
+    return tex;
+  }
+  const texBud   = makeGradientTex(...PAL.texBud);
+  const texInner = makeGradientTex(...PAL.texInner);
+  const texMid   = makeGradientTex(...PAL.texMid);
+  const texOuter = makeGradientTex(...PAL.texOuter);
+  const texEdge  = makeGradientTex(...PAL.texEdge);
+
+  function makeLeafTex() {
+    const c = document.createElement('canvas');
+    c.width = 256; c.height = 512;
+    const ctx = c.getContext('2d');
+    const g = ctx.createLinearGradient(0, 0, 0, c.height);
+    g.addColorStop(0, '#2d5a2d'); g.addColorStop(0.5, '#3a7030'); g.addColorStop(1, '#2d5a2d');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, c.width, c.height);
+    ctx.strokeStyle = '#1a4018'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(128, 0); ctx.lineTo(128, 512); ctx.stroke();
+    ctx.lineWidth = 1.5;
+    for (let y = 80; y < 460; y += 60) {
+      const off = 15 + Math.sin((y / 512) * Math.PI) * 80;
+      ctx.beginPath(); ctx.moveTo(128, y);
+      ctx.quadraticCurveTo(128 - off * 0.5, y + 20, 128 - off, y + 15); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(128, y);
+      ctx.quadraticCurveTo(128 + off * 0.5, y + 20, 128 + off, y + 15); ctx.stroke();
+    }
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.minFilter = THREE.LinearMipmapLinearFilter;
+    tex.magFilter = THREE.LinearFilter;
+    tex.generateMipmaps = true;
+    return tex;
+  }
+  const leafTex = makeLeafTex();
+
+  function petalShape(w, h) {
+    const s = new THREE.Shape(), hw = w / 2;
+    s.moveTo(0, 0);
+    s.bezierCurveTo(hw*0.35, h*0.04, hw*0.82, h*0.15, hw*0.98, h*0.32);
+    s.bezierCurveTo(hw*1.08, h*0.48, hw*1.04, h*0.58, hw*0.88, h*0.72);
+    s.bezierCurveTo(hw*0.62, h*0.89, hw*0.22, h*0.97, 0, h);
+    s.bezierCurveTo(-hw*0.22, h*0.97, -hw*0.62, h*0.89, -hw*0.88, h*0.72);
+    s.bezierCurveTo(-hw*1.04, h*0.58, -hw*1.08, h*0.48, -hw*0.98, h*0.32);
+    s.bezierCurveTo(-hw*0.82, h*0.15, -hw*0.35, h*0.04, 0, 0);
+    return s;
+  }
+
+  function petalGeometry(w, h, curlTip, cupDepth, foldStr, waveAmp, twistStr, seg) {
+    const shape = petalShape(w, h);
+    const frontGeom = new THREE.ShapeGeometry(shape, seg + 4);
+    const fPos = frontGeom.attributes.position;
+    const fCount = fPos.count;
+
+    let yMin = Infinity, yMax = -Infinity;
+    for (let i = 0; i < fCount; i++) {
+      const y = fPos.getY(i);
+      if (y < yMin) yMin = y; if (y > yMax) yMax = y;
+    }
+    const yr = yMax - yMin || 1;
+
+    const defZ = new Float32Array(fCount);
+    const defPx = new Float32Array(fCount);
+    const thick = new Float32Array(fCount);
+
+    for (let i = 0; i < fCount; i++) {
+      const x = fPos.getX(i), y = fPos.getY(i);
+      const u = (y - yMin) / yr;
+      const v = x / (w / 2);
+      const av = Math.abs(v);
+
+      const spoon = cupDepth * v * v * (1.0 - u * 0.35);
+      const tipCurl = curlTip * Math.pow(Math.max(0, u - 0.22), 2.2) * (1.0 + 0.15 * av);
+      const crease = foldStr * 1.5 * av * (1.0 - u * 0.5) * (1.0 - 0.25 * Math.exp(-av * av * 8));
+
+      const r1 = waveAmp * 1.0 * Math.sin(v * Math.PI * 3.2 + u * 0.7) * u * (1.0 - u * 0.15);
+      const r2 = waveAmp * 0.7 * Math.cos(v * Math.PI * 5.5 - u * 1.0 + 0.4) * Math.pow(Math.max(0, u - 0.05), 0.75) * (1.0 - u * 0.2);
+      const r3 = waveAmp * 0.12 * Math.sin(v * Math.PI * 8.0 + u * 2.2) * Math.pow(Math.max(0, u - 0.25), 1.5) * (0.9 + 0.1 * av);
+      const r4 = waveAmp * 0.08 * Math.cos(v * Math.PI * 12.0 - u * 1.8) * Math.pow(Math.max(0, u - 0.50), 2.3) * (1.0 + 0.1 * av);
+      const spiral = twistStr * v * u * (1.0 - u * 0.25);
+      const rLong = waveAmp * 0.35 * Math.sin((u - v * 0.25) * Math.PI * 3.5) * (0.5 + 0.5 * av) * u * (1.0 - u * 0.3);
+      const rNoise = waveAmp * 0.18 * Math.sin(v * Math.PI * 13.0 + u * 3.5) * Math.sin(u * Math.PI * 1.7) * Math.pow(u, 1.2);
+
+      defZ[i] = spoon + tipCurl + crease + spiral + r1 + r2 + r3 + r4 + rLong + rNoise;
+      defPx[i] = u < 0.06 ? x * (0.55 + 0.45 * (u / 0.06)) : x;
+      thick[i] = 0.016 * (1.0 - 0.6 * av) * (0.45 + 0.55 * (1.0 - u));
+    }
+
+    for (let i = 0; i < fCount; i++) {
+      fPos.setXYZ(i, defPx[i], fPos.getY(i), defZ[i]);
+    }
+    frontGeom.computeVertexNormals();
+    const fNorm = frontGeom.attributes.normal;
+
+    const fIdx = frontGeom.index;
+    const edgeCount = new Map();
+    const edgePair = new Map();
+    for (let t = 0; t < fIdx.count; t += 3) {
+      const tri = [fIdx.getX(t), fIdx.getX(t+1), fIdx.getX(t+2)];
+      for (let k = 0; k < 3; k++) {
+        const a = tri[k], b = tri[(k + 1) % 3];
+        const key = Math.min(a, b) + '_' + Math.max(a, b);
+        edgeCount.set(key, (edgeCount.get(key) || 0) + 1);
+        if (!edgePair.has(key)) edgePair.set(key, [a, b]);
+      }
+    }
+
+    const totalV = fCount * 2;
+    const vtx = new Float32Array(totalV * 3);
+    for (let i = 0; i < fCount; i++) {
+      vtx[i * 3] = defPx[i]; vtx[i * 3 + 1] = fPos.getY(i); vtx[i * 3 + 2] = defZ[i];
+    }
+    for (let i = 0; i < fCount; i++) {
+      const t = thick[i];
+      vtx[(fCount + i) * 3] = defPx[i] - fNorm.getX(i) * t;
+      vtx[(fCount + i) * 3 + 1] = fPos.getY(i) - fNorm.getY(i) * t;
+      vtx[(fCount + i) * 3 + 2] = defZ[i] - fNorm.getZ(i) * t;
+    }
+
+    const indices = [];
+    for (let t = 0; t < fIdx.count; t += 3) {
+      indices.push(fIdx.getX(t), fIdx.getX(t + 1), fIdx.getX(t + 2));
+    }
+    for (let t = 0; t < fIdx.count; t += 3) {
+      indices.push(fCount + fIdx.getX(t), fCount + fIdx.getX(t + 2), fCount + fIdx.getX(t + 1));
+    }
+    for (const [key, cnt] of edgeCount) {
+      if (cnt !== 1) continue;
+      const [a, b] = edgePair.get(key);
+      indices.push(a, b, fCount + b);
+      indices.push(fCount + b, fCount + a, a);
+    }
+
+    const merged = new THREE.BufferGeometry();
+    merged.setAttribute('position', new THREE.BufferAttribute(vtx, 3));
+    merged.setIndex(indices);
+    merged.computeVertexNormals();
+
+    if (frontGeom.attributes.uv) {
+      const uvArr = new Float32Array(totalV * 2);
+      for (let i = 0; i < fCount; i++) {
+        uvArr[i * 2] = frontGeom.attributes.uv.getX(i);
+        uvArr[i * 2 + 1] = frontGeom.attributes.uv.getY(i);
+        uvArr[(fCount + i) * 2] = uvArr[i * 2];
+        uvArr[(fCount + i) * 2 + 1] = uvArr[i * 2 + 1];
+      }
+      merged.setAttribute('uv', new THREE.BufferAttribute(uvArr, 2));
+    }
+
+    frontGeom.dispose();
+    return merged;
+  }
+
+  function petalMaterial(tex, opacity) {
+    return new THREE.MeshPhysicalMaterial({
+      map: tex, color: new THREE.Color('#ffffff'),
+      roughness: 0.2, metalness: 0.0,
+      clearcoat: 0.45, clearcoatRoughness: 0.1,
+      specularIntensity: 0.7, specularColor: new THREE.Color('#ffffff'),
+      sheen: 0.35, sheenRoughness: 0.15, sheenColor: new THREE.Color(PAL.sheenColor),
+      transmission: 0.08, ior: 1.45, dispersion: 0.05,
+      transparent: true, opacity, side: THREE.DoubleSide, depthWrite: true,
+    });
+  }
+
+  lotus = new THREE.Group();
+  const PHI = Math.PI * (3 - Math.sqrt(5));
+  allPetals = [];
+  const TOTAL = 70;
+
+  function remap(t, a, b, c, d) { return c + (t - a) / (b - a) * (d - c); }
+
+  for (let i = 0; i < TOTAL; i++) {
+    const t = i / TOTAL;
+    const angle = i * PHI;
+    const yBase = remap(t, 0, 1, -0.05, -0.18);
+    const pw = remap(t, 0, 1, 0.14, 0.72);
+    const ph = remap(t, 0, 1, 0.36, 1.15);
+    const tiltRaw = remap(t, 0, 1, 0, 1);
+    const tiltClosed = 0.25 + tiltRaw * tiltRaw * 0.45;
+    const tiltOpen   = 0.35 + Math.pow(tiltRaw, 1.4) * 1.65;
+    const curl = remap(t, 0, 1, 0.03, 0.80);
+    const cup  = remap(t, 0, 1, 0.10, 0.05);
+    const fold  = remap(t, 0, 1, 0.040, 0.022);
+    const wave  = remap(t, 0, 1, 0.012, 0.038);
+    const twist = remap(t, 0, 1, 0.020, 0.045);
+
+    let tex;
+    if (t < 0.12) tex = texBud;
+    else if (t < 0.3) tex = texInner;
+    else if (t < 0.55) tex = texMid;
+    else if (t < 0.78) tex = texOuter;
+    else tex = texEdge;
+
+    const opacity = remap(t, 0, 1, 0.85, 0.58);
+    const seg = Math.round(remap(t, 0, 1, 8, 12));
+    const bloomDelay = remap(t, 0, 1, 2.2, 0.0);
+
+    const geom = petalGeometry(pw, ph, curl, cup, fold, wave, twist, seg);
+    const mat = petalMaterial(tex, opacity);
+    const mesh = new THREE.Mesh(geom, mat);
+    mesh.castShadow = true; mesh.receiveShadow = true;
+    mesh.name = 'petal';
+
+    const pivot = new THREE.Group();
+    mesh.position.y = 0;
+    pivot.add(mesh);
+    pivot.position.set(0, yBase, 0);
+    const qTilt = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), tiltClosed);
+    const qDist = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), angle);
+    pivot.quaternion.multiplyQuaternions(qDist, qTilt);
+
+    lotus.add(pivot);
+    allPetals.push({ pivot, mesh, angle, tiltClosed, tiltOpen, currentTilt: tiltClosed,
+      tiltTarget: tiltOpen, tiltAnimStart: 0, tiltAnimDuration: 0, tiltAnimFrom: 0, tiltAnimTo: 0,
+      yBase, bloomDelay: bloomDelay + Math.random() * 0.2,
+      swayPhase: Math.random() * Math.PI * 2, swayAmp: 0.002 + Math.random() * 0.005,
+      swayNoiseOff: Math.random() * 100, removed: false, t });
+  }
+
+  const receptacleGeom = new THREE.SphereGeometry(0.16, 24, 16, 0, Math.PI * 2, 0, Math.PI * 0.55);
+  const receptacle = new THREE.Mesh(receptacleGeom, new THREE.MeshStandardMaterial({ color: '#3a6830', roughness: 0.5, metalness: 0.05 }));
+  receptacle.position.y = -0.26; receptacle.scale.set(1, 0.7, 1);
+  receptacle.castShadow = true; receptacle.receiveShadow = true;
+  lotus.add(receptacle);
+
+  const ringGroup = new THREE.Group();
+  const ringBand = new THREE.Mesh(
+    new THREE.TorusGeometry(0.16, 0.022, 16, 48),
+    new THREE.MeshStandardMaterial({ color: PAL.ringColor, roughness: 0.25, metalness: 0.9 })
+  );
+  ringBand.rotation.x = Math.PI / 2;
+  ringGroup.add(ringBand);
+  const diamond = new THREE.Mesh(
+    new THREE.OctahedronGeometry(0.04, 0),
+    new THREE.MeshPhysicalMaterial({ color: '#ffffff', roughness: 0.08, metalness: 0.0, clearcoat: 0.3, specularIntensity: 0.8, transmission: 0.15, ior: 2.4 })
+  );
+  diamond.position.set(0, 0.042, 0.16); diamond.scale.set(1, 1.4, 1);
+  ringGroup.add(diamond);
+  ringGroup.position.y = -0.15; ringGroup.rotation.y = Math.PI * 0.25;
+  lotus.add(ringGroup);
+
+  scene.add(lotus);
+
+  const stemCurve = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(0, -0.31, 0), new THREE.Vector3(0.06, -0.78, 0.04),
+    new THREE.Vector3(-0.04, -1.35, -0.03), new THREE.Vector3(0.03, -1.95, 0.02),
+    new THREE.Vector3(0, -2.8, 0),
+  ]);
+  const stemMat = new THREE.MeshStandardMaterial({ color: '#3a6a30', roughness: 0.55, metalness: 0.05 });
+  const stem = new THREE.Mesh(new THREE.TubeGeometry(stemCurve, 50, 0.045, 12, false), stemMat);
+  stem.castShadow = true; stem.receiveShadow = true;
+  lotus.add(stem);
+
+  for (let i = 0; i < 5; i++) {
+    const thorn = new THREE.Mesh(new THREE.ConeGeometry(0.016, 0.1, 6, 4), stemMat);
+    const pt = stemCurve.getPointAt(0.2 + i * 0.16);
+    thorn.position.copy(pt);
+    thorn.rotation.z = (i % 2 === 0 ? 0.5 : -0.5);
+    thorn.rotation.x = (i % 3 === 0 ? 0.2 : -0.2);
+    thorn.castShadow = true;
+    lotus.add(thorn);
+  }
+
+  function createLeaf(w, h, stemT, rx, ry, rz) {
+    const shape = new THREE.Shape(), hw = w / 2;
+    shape.moveTo(0, 0);
+    shape.bezierCurveTo(hw*0.7, h*0.15, hw*0.95, h*0.35, hw*0.8, h*0.65);
+    shape.bezierCurveTo(hw*0.5, h*0.88, hw*0.1, h*0.98, 0, h);
+    shape.bezierCurveTo(-hw*0.1, h*0.98, -hw*0.5, h*0.88, -hw*0.8, h*0.65);
+    shape.bezierCurveTo(-hw*0.95, h*0.35, -hw*0.7, h*0.15, 0, 0);
+    const geom = new THREE.ShapeGeometry(shape, 14);
+    const pos = geom.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i), y = pos.getY(i);
+      pos.setZ(i, 0.04 * Math.abs(x/(w/2)) * (y/h) + 0.03 * (x/(w/2))*(x/(w/2)) * (1-y/h));
+    }
+    geom.computeVertexNormals();
+    const leaf = new THREE.Mesh(geom, new THREE.MeshStandardMaterial({ map: leafTex, color:'#ffffff', roughness:0.5, metalness:0.02, side:THREE.DoubleSide }));
+    leaf.position.copy(stemCurve.getPointAt(stemT));
+    leaf.rotation.set(rx, ry, rz);
+    leaf.castShadow = true; leaf.receiveShadow = true;
+    return leaf;
+  }
+  lotus.add(createLeaf(0.22, 0.65, 0.35, -0.7, 0.6, 0.3));
+  lotus.add(createLeaf(0.25, 0.75, 0.5, -0.55, 2.4, -0.25));
+  lotus.add(createLeaf(0.22, 0.6, 0.62, -0.65, -1.8, 0.2));
+
+  stamenGroup = new THREE.Group();
+  stamenGroup.position.y = -0.10;
+  const filamentMat = new THREE.MeshStandardMaterial({ color: PAL.filamentColor, roughness: 0.4, metalness: 0.1 });
+  const antherMat = new THREE.MeshStandardMaterial({ color: PAL.antherColor, roughness: 0.3, metalness: 0.2, emissive: PAL.antherEmissive, emissiveIntensity: 0.5 });
+  for (let i = 0; i < 55; i++) {
+    const fg = new THREE.CylinderGeometry(0.003, 0.005, 0.16, 6);
+    const filament = new THREE.Mesh(fg, filamentMat);
+    const theta = Math.random() * Math.PI * 2;
+    const phi = 0.05 + Math.random() * 0.35;
+    filament.position.set(Math.cos(theta)*Math.sin(phi)*0.1, Math.cos(phi)*0.06, Math.sin(theta)*Math.sin(phi)*0.1);
+    filament.rotation.z = phi; filament.rotation.y = theta;
+    stamenGroup.add(filament);
+    const anther = new THREE.Mesh(new THREE.SphereGeometry(0.008, 4, 4), antherMat);
+    anther.position.copy(filament.position); anther.position.y += 0.08;
+    stamenGroup.add(anther);
+  }
+  lotus.add(stamenGroup);
+
+  centerTarget = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 8), new THREE.MeshBasicMaterial({ visible: false }));
+  centerTarget.position.y = -0.05; centerTarget.name = 'center';
+  lotus.add(centerTarget);
+
+  const glowGeom = new THREE.PlaneGeometry(10, 10);
+  glowMat = new THREE.ShaderMaterial({
+    uniforms: { uTime:{value:0}, uC1:{value:new THREE.Color(PAL.glowC1)}, uC2:{value:new THREE.Color(PAL.glowC2)} },
+    vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+    fragmentShader: `varying vec2 vUv; uniform float uTime; uniform vec3 uC1,uC2;
+      void main(){ float d=length(vUv-0.5)*2.0; float wave=sin(uTime*0.8+d*5.0)*0.05; float g=exp(-(d+wave)*2.2)*0.16+exp(-(d+wave)*5.0)*0.05; g*=0.75+0.25*sin(uTime*0.6+d*3.0); gl_FragColor=vec4(mix(uC1,uC2,d),g); }`,
+    transparent:true, depthWrite:false,
+  });
+  const glowPlane = new THREE.Mesh(glowGeom, glowMat);
+  glowPlane.rotation.x = -Math.PI/2; glowPlane.position.y = -3.3;
+  glowPlane.renderOrder = 999; glowPlane.material.depthTest = false;
+  scene.add(glowPlane);
+
+  bgParticles = [];
+  const pGeom = new THREE.SphereGeometry(0.014, 6, 6);
+  for (let i = 0; i < 70; i++) {
+    const mat = new THREE.MeshBasicMaterial({ color: PAL.pColors[Math.floor(Math.random()*PAL.pColors.length)], transparent:true, opacity:0.2+Math.random()*0.5, depthWrite:false });
+    const p = new THREE.Mesh(pGeom, mat);
+    const th = Math.random()*Math.PI*2, ph = Math.random()*Math.PI*0.65, r = 4+Math.random()*6;
+    p.position.set(Math.cos(th)*Math.sin(ph)*r, (Math.random()-0.5)*6, Math.sin(th)*Math.sin(ph)*r);
+    p.userData = { bx:p.position.x, by:p.position.y, bz:p.position.z, sp:0.15+Math.random()*0.5, amp:0.1+Math.random()*0.5, ph:Math.random()*Math.PI*2 };
+    scene.add(p); bgParticles.push(p);
+  }
+
+  sparkles = [];
+  fallingPetals = [];
+  totalClicks = 0;
+  fullBloomTriggered = false;
+
+  raycaster = new THREE.Raycaster();
+  mouse = new THREE.Vector2();
+
+  threeClock = new THREE.Clock();
+}
+
+function disposeLotusScene() {
+  if (scene) {
+    scene.traverse(obj => {
+      if (obj.geometry) obj.geometry.dispose();
+      if (obj.material) {
+        if (Array.isArray(obj.material)) obj.material.forEach(m => { if (m.map) m.map.dispose(); m.dispose(); });
+        else { if (obj.material.map) obj.material.map.dispose(); obj.material.dispose(); }
+      }
+    });
+  }
+  if (renderer) { renderer.dispose(); renderer = null; }
+  if (composer) { composer.renderTarget2 && composer.renderTarget2.dispose(); composer = null; }
+  scene = null; camera = null; lotus = null; controls = null; glowMat = null;
+  allPetals = []; stamenGroup = null; centerTarget = null;
+  sparkles = []; fallingPetals = []; bgParticles = [];
+  threeClock = null; sharedSparkGeom = null;
+}
+
+function resetLotusView() {
+  totalClicks = 0;
+  fullBloomTriggered = false;
+  if (camera) { camera.position.set(0, 0.8, 7.5); if (controls) { controls.target.set(0, 0.05, 0); controls.update(); } }
+}
+
+// ===================================================================
+//  THREE.JS ANIMATION LOOP
+// ===================================================================
+function setPetalQuat(pd, tilt) {
+  const qt = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), tilt);
+  const qd = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), pd.angle);
+  pd.pivot.quaternion.multiplyQuaternions(qd, qt);
+  pd.currentTilt = tilt;
+}
+function easeOutElastic(t) {
+  if (t === 0 || t === 1) return t;
+  return Math.pow(2, -10 * t) * Math.sin((t - 1) * (2 * Math.PI) / 0.35) + 1;
+}
+function easeOutBack(t) {
+  const c1 = 1.70158, c3 = c1 + 1;
+  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+}
+
+const BLOOM_DURATION = 5.5;
+let initialBloom = 0;
+
+function mainLoop(ts) {
+  animFrameId = requestAnimationFrame(mainLoop);
+
+  // ── Canvas starfield (always runs) ──
+  bgX.clearRect(0, 0, W, H);
+  stars.forEach(s => { s.upd(); s.draw(bgX); });
+  shooter.upd(ts); shooter.draw(bgX);
+  fxX.clearRect(0, 0, W, H);
+  fParts = fParts.filter(p => p.a > 0);
+  fParts.forEach(p => { p.upd(); p.draw(fxX); });
+
+  // ── Three.js (only when scene is live) ──
+  if (!scene || !threeClock) return;
+  const dt = Math.min(threeClock.getDelta(), 0.1);
+  const t = threeClock.getElapsedTime();
+
+  initialBloom = Math.min(1, t / BLOOM_DURATION);
+  const ep = easeOutBack(initialBloom);
+
+  allPetals.forEach(p => {
+    if (p.removed) return;
+    const localRaw = Math.max(0, Math.min(1, (ep - p.bloomDelay * 0.25) / 0.75));
+    const localInit = easeOutBack(localRaw);
+    const baseTilt = p.tiltClosed + (p.tiltOpen - p.tiltClosed) * localInit;
+
+    if (p.tiltAnimDuration > 0) {
+      const animElapsed = ts - p.tiltAnimStart;
+      const animT = Math.min(1, animElapsed / p.tiltAnimDuration);
+      const animEased = easeOutElastic(animT);
+      const clickTilt = p.tiltAnimFrom + (p.tiltAnimTo - p.tiltAnimFrom) * animEased;
+      if (animT >= 1) { setPetalQuat(p, p.tiltAnimTo); p.tiltAnimDuration = 0; }
+      else { setPetalQuat(p, Math.max(baseTilt, clickTilt)); }
+    } else {
+      setPetalQuat(p, baseTilt);
+    }
+
+    const noiseVal = Math.sin(t * 1.2 + p.swayNoiseOff) * Math.cos(t * 0.6 + p.swayNoiseOff * 1.7);
+    const localOpen = Math.max(0, (localRaw - 0.5) * 2);
+    const sway = noiseVal * p.swayAmp * (0.3 + localOpen * 0.7) * 4;
+    p.pivot.rotation.z += sway * 0.3;
+  });
+
+  if (stamenGroup) {
+    const sScale = 0.5 + 0.5 * ep;
+    stamenGroup.scale.setScalar(sScale);
+    stamenGroup.position.y = -0.10 + ep * 0.04;
+  }
+
+  smoothMouseX += (targetMouseX - smoothMouseX) * 0.03;
+  smoothMouseY += (targetMouseY - smoothMouseY) * 0.03;
+  if (lotus) {
+    lotus.rotation.z = smoothMouseX * 0.04;
+    lotus.rotation.x = -smoothMouseY * 0.03;
+    lotus.rotation.y = Math.sin(t * 0.15) * 0.006;
+  }
+
+  for (let i = sparkles.length - 1; i >= 0; i--) {
+    const s = sparkles[i];
+    s.userData.age += dt;
+    if (s.userData.age >= s.userData.life) { scene.remove(s); s.material.dispose(); sparkles.splice(i, 1); }
+    else {
+      const prog = s.userData.age / s.userData.life;
+      s.position.x += s.userData.vel.x * dt;
+      s.position.y += s.userData.vel.y * dt;
+      s.position.z += s.userData.vel.z * dt;
+      s.userData.vel.y += 0.1 * dt;
+      s.material.opacity = 1 - prog;
+      s.scale.setScalar(1 - prog * 0.6);
+    }
+  }
+
+  for (let i = fallingPetals.length - 1; i >= 0; i--) {
+    const fp = fallingPetals[i];
+    fp.age += dt;
+    if (fp.age > fp.life) { scene.remove(fp.mesh); fp.mesh.material.dispose(); fp.mesh.geometry.dispose(); fallingPetals.splice(i, 1); }
+    else {
+      fp.velocity.y += fp.gravity * dt;
+      fp.mesh.position.x += fp.velocity.x * dt;
+      fp.mesh.position.y += fp.velocity.y * dt;
+      fp.mesh.position.z += fp.velocity.z * dt;
+      fp.mesh.rotation.x += fp.rotVel.x * dt;
+      fp.mesh.rotation.y += fp.rotVel.y * dt;
+      fp.mesh.rotation.z += fp.rotVel.z * dt;
+      if (fp.age / fp.life > 0.6) fp.mesh.material.opacity = Math.max(0, fp.mesh.material.opacity - dt * 0.5);
+    }
+  }
+
+  if (controls) controls.update();
+  if (glowMat) glowMat.uniforms.uTime.value = t;
+
+  bgParticles.forEach(p => {
+    const d = p.userData;
+    p.position.x = d.bx + Math.sin(t * d.sp + d.ph) * d.amp;
+    p.position.y = d.by + Math.cos(t * d.sp * 0.65 + d.ph) * d.amp * 0.7;
+    p.position.z = d.bz + Math.cos(t * d.sp * 0.55 + d.ph) * d.amp * 0.6;
+  });
+
+  if (composer) composer.render();
+}
+
+// ===================================================================
+//  THREE.JS INTERACTION
+// ===================================================================
+let sharedSparkGeom = null;
+function getSparkGeom() {
+  if (!sharedSparkGeom) sharedSparkGeom = new THREE.SphereGeometry(0.012, 4, 4);
+  return sharedSparkGeom;
+}
+
+function burstSparkles(worldPos, count, color) {
+  if (!scene) return;
+  const geom = getSparkGeom();
+  for (let i = 0; i < count; i++) {
+    const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 1, depthWrite: false });
+    const s = new THREE.Mesh(geom, mat);
+    s.position.copy(worldPos);
+    const dir = new THREE.Vector3((Math.random()-0.5)*2, (Math.random()-0.5)*2, (Math.random()-0.5)*2).normalize();
+    s.userData = { vel: dir.multiplyScalar(0.3+Math.random()*1.2), life: 0.6+Math.random()*1.0, age: 0 };
+    scene.add(s); sparkles.push(s);
+  }
+}
+
+function detachPetal(petalData) {
+  if (petalData.removed) return;
+  petalData.removed = true;
+  const worldPos = new THREE.Vector3();
+  const worldQuat = new THREE.Quaternion();
+  petalData.mesh.getWorldPosition(worldPos);
+  petalData.mesh.getWorldQuaternion(worldQuat);
+  petalData.pivot.remove(petalData.mesh);
+  petalData.mesh.position.copy(worldPos);
+  petalData.mesh.quaternion.copy(worldQuat);
+  scene.add(petalData.mesh);
+  fallingPetals.push({
+    mesh: petalData.mesh,
+    velocity: new THREE.Vector3((Math.random()-0.5)*0.4, 0.1+Math.random()*0.3, (Math.random()-0.5)*0.4),
+    rotVel: new THREE.Vector3((Math.random()-0.5)*2.5, (Math.random()-0.5)*2.5, (Math.random()-0.5)*2.5),
+    gravity: -0.25 - Math.random()*0.3,
+    life: 3+Math.random()*3, age: 0,
+  });
+}
+
+function showLoveText() {
+  const el = document.createElement('div');
+  el.style.cssText = `position:fixed;pointer-events:none;z-index:30;font-size:28px;font-weight:300;letter-spacing:4px;color:${PAL.sparkColors[0]};animation:loveRise 4s ease-out forwards;left:${30+Math.random()*40}%;top:${40+Math.random()*30}%;`;
+  el.textContent = ['❤️','✨','💖','💫','💕','🌟'][Math.floor(Math.random()*6)];
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+
+function updateClickCounter() {
+  const c = document.getElementById('clickCounter');
+  if (totalClicks >= 10) c.textContent = `已点击 ${totalClicks} 次 · 花瓣开始飘落...`;
+  else if (totalClicks >= 5) c.textContent = `已点击 ${totalClicks} 次 · 继续点击花瓣吧`;
+  else if (totalClicks > 0) c.textContent = `已点击 ${totalClicks} 次`;
+  c.style.opacity = totalClicks > 0 ? '1' : '0';
+}
+
+function triggerPetalBloom(petalData, worldHitPoint) {
+  totalClicks++;
+  petalData.tiltTarget = Math.min(petalData.tiltOpen * 1.1, 2.8);
+  petalData.tiltAnimFrom = petalData.currentTilt;
+  petalData.tiltAnimTo = petalData.tiltTarget;
+  petalData.tiltAnimStart = performance.now();
+  petalData.tiltAnimDuration = 700 + Math.random() * 300;
+  burstSparkles(worldHitPoint, 15, PAL.sparkBurst[0]);
+
+  const layerT = petalData.t;
+  allPetals.forEach(p => {
+    if (p === petalData || p.removed) return;
+    if (Math.abs(p.t - layerT) < 0.06) {
+      p.tiltTarget = Math.min(p.tiltOpen * 1.06, 2.7);
+      p.tiltAnimFrom = p.currentTilt;
+      p.tiltAnimTo = p.tiltTarget;
+      p.tiltAnimStart = performance.now();
+      p.tiltAnimDuration = 500 + Math.random() * 400;
+    }
+  });
+
+  if (totalClicks >= 8 && totalClicks % 3 === 0) {
+    const outer = allPetals.filter(p => !p.removed && p.t > 0.7);
+    if (outer.length > 0) {
+      const victim = outer[Math.floor(Math.random() * outer.length)];
+      const wp = new THREE.Vector3(); victim.mesh.getWorldPosition(wp);
+      burstSparkles(wp, 25, PAL.sparkBurst[1]);
+      setTimeout(() => detachPetal(victim), 300);
+    }
+  }
+  if (totalClicks >= 15 && totalClicks % 5 === 0) showLoveText();
+  updateClickCounter();
+}
+
+function triggerFullBloom() {
+  if (fullBloomTriggered) return;
+  fullBloomTriggered = true;
+  const sorted = [...allPetals].filter(p => !p.removed).sort((a, b) => b.t - a.t);
+  sorted.forEach((p, i) => {
+    setTimeout(() => {
+      p.tiltTarget = Math.min(p.tiltOpen * 1.08, 2.8);
+      p.tiltAnimFrom = p.currentTilt;
+      p.tiltAnimTo = p.tiltTarget;
+      p.tiltAnimStart = performance.now();
+      p.tiltAnimDuration = 900 + Math.random() * 400;
+    }, i * 55);
+  });
+  const cp = new THREE.Vector3(0, -0.05, 0); lotus.localToWorld(cp);
+  burstSparkles(cp, 50, PAL.sparkBurst[0]);
+  setTimeout(() => burstSparkles(cp.clone(), 35, PAL.sparkBurst[1]), 400);
+  setTimeout(() => burstSparkles(cp.clone(), 25, PAL.sparkBurst[2]), 800);
+  updateClickCounter();
+}
+
+function handleClick(clientX, clientY) {
+  if (!scene || !camera) return;
+  mouse.x = (clientX / innerWidth) * 2 - 1;
+  mouse.y = -(clientY / innerHeight) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+
+  const centerHits = raycaster.intersectObject(centerTarget);
+  if (centerHits.length > 0) { triggerFullBloom(); return; }
+
+  const petalMeshes = allPetals.filter(p => !p.removed).map(p => p.mesh);
+  const hits = raycaster.intersectObjects(petalMeshes);
+  if (hits.length > 0) {
+    const petalData = allPetals.find(p => p.mesh === hits[0].object && !p.removed);
+    if (petalData) triggerPetalBloom(petalData, hits[0].point);
+  }
+}
+
+function toggleFullscreen() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(() => {});
+  } else {
+    document.exitFullscreen().catch(() => {});
+  }
+}
+
+// ===================================================================
+//  CANVAS STARFIELD (background)
+// ===================================================================
+let W, H;
+const bgC = document.getElementById('bgCanvas'), bgX = bgC.getContext('2d');
+const fxC = document.getElementById('fxCanvas'), fxX = fxC.getContext('2d');
+
+function resizeCanvases() {
+  W = bgC.width = fxC.width = window.innerWidth;
+  H = bgC.height = fxC.height = window.innerHeight;
+}
+resizeCanvases();
+
+function resizeThree() {
+  if (!renderer || !camera || !composer) return;
+  const w = innerWidth, h = innerHeight;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.setSize(w, h, false);
+  composer.setSize(w, h);
+}
+
+// Immediate Three.js resize (no debounce)
+window.addEventListener('resize', resizeThree);
+
+// Debounced canvas resize
+let resizeDebounce;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeDebounce);
+  resizeDebounce = setTimeout(resizeCanvases, 300);
+});
+
+// Fullscreen change — resize everything immediately
+window.addEventListener('fullscreenchange', () => {
+  resizeThree();
+  resizeCanvases();
+});
+
+class Star {
+  constructor() {
+    this.x = Math.random() * W;
+    this.y = Math.random() * H;
+    this.r = Math.random() * 1.2 + 0.2;
+    this.a = Math.random() * 0.35 + 0.1;
+    this.phi = Math.random() * Math.PI * 2;
+    this.dphi = (Math.random() - 0.5) * 0.008;
+    this.drift = (Math.random() - 0.5) * 0.03;
+    const cols = ['#b0b8dd','#ddd8ff','#b0a0e0','#c8b8e8','#8899cc','#a0a0d0'];
+    this.col = cols[Math.floor(Math.random() * cols.length)];
+  }
+  upd() {
+    this.phi += this.dphi; this.x += this.drift; this.y += Math.random() * 0.015;
+    if (this.y > H + 5) { this.y = -5; this.x = Math.random() * W; }
+    if (this.x > W + 5) this.x = -5; if (this.x < -5) this.x = W + 5;
+  }
+  draw(c) {
+    const tw = 1 + Math.sin(this.phi) * 0.2;
+    const a = Math.max(0.02, this.a * tw);
+    c.save(); c.globalAlpha = a;
+    c.fillStyle = this.col; c.shadowColor = this.col; c.shadowBlur = this.r * 4;
+    c.beginPath(); c.arc(this.x, this.y, this.r, 0, Math.PI * 2); c.fill();
+    c.restore();
+  }
+}
+const stars = Array.from({length: 100}, () => new Star());
+
+class Shooter {
+  constructor() { this.reset(); }
+  reset() {
+    this.x = Math.random() * W * 0.7 + W * 0.1; this.y = Math.random() * H * 0.2;
+    this.len = Math.random() * 50 + 25; this.spd = Math.random() * 5 + 3;
+    this.ang = Math.PI / 4 + (Math.random() - 0.5) * 0.25; this.a = 1;
+    this.decay = Math.random() * 0.012 + 0.006; this.alive = false;
+    this.next = performance.now() + Math.random() * 14000 + 7000;
+  }
+  upd(ts) {
+    if (!this.alive) { if (ts > this.next) { this.alive = true; this.reset(); } return; }
+    this.x += Math.cos(this.ang) * this.spd; this.y += Math.sin(this.ang) * this.spd;
+    this.a -= this.decay;
+    if (this.a <= 0 || this.x > W + 100 || this.y > H + 100) { this.alive = false; this.next = ts + Math.random() * 12000 + 5000; }
+  }
+  draw(c) {
+    if (!this.alive || this.a <= 0) return;
+    const ex = this.x - Math.cos(this.ang) * this.len, ey = this.y - Math.sin(this.ang) * this.len;
+    const g = c.createLinearGradient(ex, ey, this.x, this.y);
+    g.addColorStop(0, 'rgba(255,255,255,0)');
+    g.addColorStop(0.5, `rgba(200,180,240,${this.a * 0.35})`);
+    g.addColorStop(1, `rgba(200,180,240,${this.a})`);
+    c.save(); c.globalAlpha = this.a; c.strokeStyle = g; c.lineWidth = 1.8;
+    c.shadowColor = 'rgba(200,180,240,0.2)'; c.shadowBlur = 4;
+    c.beginPath(); c.moveTo(ex, ey); c.lineTo(this.x, this.y); c.stroke(); c.restore();
+  }
+}
+const shooter = new Shooter();
+
+class FPart {
+  constructor(x, y, col) {
+    this.x = x; this.y = y;
+    const a = Math.random() * Math.PI * 2; const s = Math.random() * 5 + 1.5;
+    this.vx = Math.cos(a) * s; this.vy = Math.sin(a) * s;
+    this.col = col; this.a = 1;
+    this.dec = Math.random() * 0.012 + 0.005; this.sz = Math.random() * 2.5 + 1;
+    this.g = 0.03;
+  }
+  upd() { this.x += this.vx; this.y += this.vy; this.vy += this.g; this.a -= this.dec; }
+  draw(c) {
+    if (this.a <= 0) return;
+    c.save(); c.globalAlpha = this.a; c.fillStyle = this.col; c.shadowColor = this.col; c.shadowBlur = 5;
+    c.beginPath(); c.arc(this.x, this.y, this.sz, 0, Math.PI * 2); c.fill(); c.restore();
+  }
+}
+
+function canvasBurst(x, y, count, col) {
+  for (let i = 0; i < count; i++) {
+    const p = new FPart(x, y, col);
+    p.vx = (Math.random() - 0.5) * 6; p.vy = (Math.random() - 0.5) * 6;
+    p.dec = Math.random() * 0.01 + 0.004;
+    fParts.push(p);
+  }
+}
+
+// ===================================================================
+//  GLOBAL EVENT HANDLERS
+// ===================================================================
+document.addEventListener('mousemove', e => {
+  targetMouseX = (e.clientX / innerWidth) * 2 - 1;
+  targetMouseY = -(e.clientY / innerHeight) * 2 + 1;
+  if (dom.orb) {
+    dom.orb.style.left = e.clientX + 'px';
+    dom.orb.style.top = e.clientY + 'px';
+  }
+});
+
+document.addEventListener('touchmove', e => {
+  if (e.touches.length === 1) {
+    targetMouseX = (e.touches[0].clientX / innerWidth) * 2 - 1;
+    targetMouseY = -(e.touches[0].clientY / innerHeight) * 2 + 1;
+  }
+}, { passive: true });
+
+let clickTimer = null;
+document.addEventListener('click', e => {
+  if (currentStage < 4 || currentStage > 7) return;
+  // Debounce single-click to avoid firing during double-click
+  if (clickTimer) { clearTimeout(clickTimer); clickTimer = null; return; }
+  clickTimer = setTimeout(() => {
+    clickTimer = null;
+    handleClick(e.clientX, e.clientY);
+  }, 280);
+});
+
+document.addEventListener('touchend', e => {
+  if (currentStage >= 4 && currentStage <= 7 && e.changedTouches.length === 1) {
+    handleClick(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+  }
+});
+
+let fsLock = false;
+document.addEventListener('dblclick', e => {
+  if (currentStage < 4 || fsLock) return;
+  fsLock = true;
+  toggleFullscreen();
+  // Delay particle burst until after fullscreen resize settles
+  setTimeout(() => {
+    canvasBurst(e.clientX, e.clientY, 50, PAL.sparkBurst[0]);
+    fsLock = false;
+  }, 350);
+  if (dom.msgCard) dom.msgCard.classList.remove('show');
+  if (dom.message) dom.message.classList.remove('active');
+});
+
+document.addEventListener('click', e => {
+  if (e.target.closest('.select-btn') || e.target.closest('.msg-close-btn') || e.target.closest('.restart-btn')) return;
+  spawnRipple(e.clientX, e.clientY);
+});
+
+document.addEventListener('touchstart', e => {
+  if (e.touches.length === 1) spawnRipple(e.touches[0].clientX, e.touches[0].clientY);
+}, { passive: true });
+
+window.addEventListener('keydown', (e) => {
+  if (currentStage < 4) return;
+  switch (e.key.toLowerCase()) {
+    case 'r': if (camera) { camera.position.set(0, 0.8, 7.5); if (controls) { controls.target.set(0, 0.05, 0); controls.update(); } } break;
+    case 'f': if (camera) { camera.position.set(0, 0.5, 6); if (controls) { controls.target.set(0, 0, 0); controls.update(); } } break;
+    case 't': if (camera) { camera.position.set(0, 7, 0.5); if (controls) { controls.target.set(0, 0, 0); controls.update(); } } break;
+    case 'b': fullBloomTriggered = false; triggerFullBloom(); break;
+    case ' ': e.preventDefault(); toggleFullscreen(); break;
+  }
+});
+
+// ===================================================================
+//  LAUNCH
+// ===================================================================
+requestAnimationFrame(mainLoop);
+startFlow();
+
+console.log('💎 水晶心语 — 7阶段交互体验');
+console.log('⌨️ 快捷键: R=重置视角 | F=正面视角 | T=顶部视角 | B=一键全开 | 空格=全屏');
+</script>
+</body>
+</html>
