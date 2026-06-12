@@ -47,28 +47,6 @@
 
 ---
 
----
-
-## 💎 水晶心语 — Interactive 3D Crystal Lotus
-
-<p align="center">
-  <img src="crystal-whispers-preview.png" width="640" alt="水晶心语 preview">
-</p>
-
-基于 Three.js 的交互式 3D 水晶莲花体验，融合 Canvas 星野、打字机文字叙事、粒子特效和 7 阶段情感流程。
-
-**[📄 在线体验](https://patients760.github.io/wechat-export/水晶心语.html)** | **[💾 源码](水晶心语.html)**
-
-- 🌸 70 片程序化水晶花瓣 — ShapeGeometry + 3D 厚几何体 + 10 层波纹/褶皱变形
-- 🎨 双色系切换 — 温柔暖调（粉晶）/ 清透冷调（蓝晶），全参数化调色板
-- ✨ Three.js 后处理 — EffectComposer + UnrealBloomPass 泛光
-- 💬 三栏分屏打字机 — 左栏前半段 → 右栏后半段，自动平滑滚动追踪
-- 🌠 Canvas 星野背景 — 100+ 闪烁星辰 + 流星 + 粒子烟花
-- ⌨️ 键盘快捷键 — `R` 重置 `F` 正面 `T` 俯视 `B` 全开 `空格` 全屏
-- 📱 响应式 + 触摸支持 + 屏幕震动反馈
-
----
-
 ## 📋 目录
 
 - [原理概览](#原理概览)
